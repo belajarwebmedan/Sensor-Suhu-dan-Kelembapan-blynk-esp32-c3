@@ -1,0 +1,59 @@
+// ======================================
+// =====================================
+#define BLYNK_TEMPLATE_ID "xx"
+#define BLYNK_TEMPLATE_NAME "xx"
+#define BLYNK_AUTH_TOKEN "xx_"
+
+
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+#include "DHT.h"
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "xx";
+char pass[] = "xx";
+
+#define DHTPIN 5
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+BlynkTimer timer;
+
+void sendSensorData() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  if (!isnan(h) && !isnan(t)) {
+    Blynk.virtualWrite(V1, t);
+    Blynk.virtualWrite(V2, h);
+    Serial.printf("Suhu: %.2f | Lembab: %.2f (Terkirim ke Blynk)\n", t, h);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, pass);
+  
+  // SOLUSI KHUSUS ESP32-C3: Kurangi daya pancar agar tidak interferensi
+  WiFi.setTxPower(WIFI_POWER_8_5dBm); 
+
+  Serial.print("Menghubungkan WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\n[OK] WiFi Terhubung!");
+
+  Blynk.config(auth);
+  Blynk.connect();
+  
+  timer.setInterval(2000L, sendSensorData);
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
+
